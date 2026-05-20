@@ -11,10 +11,10 @@ PEP 8 | OOP | Single Responsibility
 """
 
 from __future__ import annotations
-
+from langchain_community.embeddings import HuggingFaceEmbeddings
 from enum import Enum
 from functools import lru_cache
-
+from langchain_groq import ChatGroq
 from langchain_core.language_models.chat_models import BaseChatModel
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -175,8 +175,12 @@ class LLMFactory:
         Interview talking point: Groq uses LPU (Language Processing Unit)
         inference for significantly lower latency than GPU-based inference.
         """
-        # TODO: implement using langchain_groq.ChatGroq
-        raise NotImplementedError
+        if not self._settings.groq_api_key or self._settings.groq_api_key == "your_groq_api_key_here":
+            raise EnvironmentError("GROQ_API_KEY is missing or empty. Set it in .env")
+        return ChatGroq(
+            api_key=self._settings.groq_api_key,
+            model_name=self._settings.groq_model,
+        )
 
     def _create_ollama(self) -> BaseChatModel:
         """
@@ -265,8 +269,7 @@ class EmbeddingFactory:
         Interview talking point: local embeddings mean the corpus content
         never leaves the machine — important for proprietary datasets.
         """
-        # TODO: implement using langchain_community.embeddings.HuggingFaceEmbeddings
-        raise NotImplementedError
+        return HuggingFaceEmbeddings(model_name=self._settings.embedding_model)
 
     def _create_openai(self):
         """
