@@ -12,7 +12,9 @@ PEP 8 | OOP | Single Responsibility
 from __future__ import annotations
 
 import hashlib
+from collections import defaultdict
 from pathlib import Path
+
 import chromadb
 from loguru import logger
 
@@ -289,7 +291,7 @@ class VectorStoreManager:
 
         retrieved.sort(key=lambda c: c.score, reverse=True)
         return retrieved
-
+  
     # -----------------------------------------------------------------------
     # Corpus Inspection
     # -----------------------------------------------------------------------
@@ -305,11 +307,27 @@ class VectorStoreManager:
         list[dict]
             Each item contains: source (str), topic (str), chunk_count (int).
         """
-        # TODO: implement
-        # Query all metadata from the collection
-        # Group by metadata["source"] and count chunks per source
-        # Return sorted list of dicts
-        raise NotImplementedError
+        raw = self._collection.get(include=["metadatas"])
+        metadatas = raw.get("metadatas") or []
+
+        grouped: dict[str, dict[str, str | int]] = defaultdict(
+            lambda: {"topic": "", "chunk_count": 0}
+        )
+        for meta in metadatas:
+            source = meta["source"]
+            grouped[source]["chunk_count"] = int(grouped[source]["chunk_count"]) + 1
+            if not grouped[source]["topic"]:
+                grouped[source]["topic"] = meta["topic"]
+
+        documents = [
+            {
+                "source": source,
+                "topic": info["topic"],
+                "chunk_count": info["chunk_count"],
+            }
+            for source, info in grouped.items()
+        ]
+        return sorted(documents, key=lambda item: item["source"])
 
     def get_document_chunks(self, source: str) -> list[DocumentChunk]:
         """
@@ -328,10 +346,23 @@ class VectorStoreManager:
             All chunks from this source, ordered by their position
             in the original document.
         """
-        # TODO: implement
-        # self._collection.get(where={"source": source}, include=["documents", "metadatas"])
-        # Reconstruct DocumentChunk objects from results
-        raise NotImplementedError
+        raw = self._collection.get(
+            where={"source": source},
+            include=["documents", "metadatas"],
+        )
+        ids = raw.get("ids") or []
+        documents = raw.get("documents") or []
+        metadatas = raw.get("metadatas") or []
+
+        chunks = [
+            DocumentChunk(
+                chunk_id=chunk_id,
+                chunk_text=doc,
+                metadata=ChunkMetadata.from_dict(meta),
+            )
+            for chunk_id, doc, meta in zip(ids, documents, metadatas, strict=True)
+        ]
+        return sorted(chunks, key=lambda chunk: chunk.chunk_id)
 
     def get_collection_stats(self) -> dict:
         """
@@ -345,8 +376,27 @@ class VectorStoreManager:
             Keys: total_chunks, topics (list), sources (list),
             bonus_topics_present (bool).
         """
-        # TODO: implement
-        raise NotImplementedError
+        raw = self._collection.get(include=["metadatas"])
+        metadatas = raw.get("metadatas") or []
+
+        topics: set[str] = set()
+        sources: set[str] = set()
+        bonus_topics_present = False
+        bonus_topic_names = {"GAN", "SOM", "BoltzmannMachine"}
+
+        for meta in metadatas:
+            topics.add(meta["topic"])
+            sources.add(meta["source"])
+            is_bonus = meta.get("is_bonus", "false").lower() == "true"
+            if is_bonus or meta["topic"] in bonus_topic_names:
+                bonus_topics_present = True
+
+        return {
+            "total_chunks": len(metadatas),
+            "topics": sorted(topics),
+            "sources": sorted(sources),
+            "bonus_topics_present": bonus_topics_present,
+        }
 
     def delete_document(self, source: str) -> int:
         """
@@ -362,6 +412,11 @@ class VectorStoreManager:
         int
             Number of chunks deleted.
         """
-        # TODO: implement
-        # self._collection.delete(where={"source": source})
-        raise NotImplementedError
+        existing = self._collection.get(where={"source": source})
+        count = len(existing.get("ids") or [])
+        if count == 0:
+            return 0
+
+        self._collection.delete(where={"source": source})
+        logger.info("Deleted {} chunks for source '{}'", count, source)
+        return count
