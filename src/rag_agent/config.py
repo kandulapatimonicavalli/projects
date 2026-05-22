@@ -180,6 +180,8 @@ class LLMFactory:
         return ChatGroq(
             api_key=self._settings.groq_api_key,
             model_name=self._settings.groq_model,
+            timeout=60,
+            max_retries=2,
         )
 
     def _create_ollama(self) -> BaseChatModel:
@@ -280,3 +282,15 @@ class EmbeddingFactory:
         """
         # TODO: implement using langchain_openai.OpenAIEmbeddings
         raise NotImplementedError
+
+
+@lru_cache(maxsize=1)
+def get_chat_model() -> BaseChatModel:
+    """Singleton chat model — avoids reconnecting on every graph node."""
+    return LLMFactory(get_settings()).create()
+
+
+@lru_cache(maxsize=1)
+def get_embedding_model():
+    """Singleton embedding model — loaded once per process (~90MB local model)."""
+    return EmbeddingFactory(get_settings()).create()

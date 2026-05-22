@@ -24,6 +24,7 @@ data/chroma_db/
 # Uploaded corpus files — commit .md files you author,
 # but do NOT commit large PDF files (use .gitignore or Git LFS)
 data/corpus/*.pdf
+data/corpus/uploads/
 
 # IDE
 .vscode/settings.json

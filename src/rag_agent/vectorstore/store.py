@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import hashlib
 from collections import defaultdict
+from functools import lru_cache
 from pathlib import Path
 
 import chromadb
@@ -24,7 +25,7 @@ from rag_agent.agent.state import (
     IngestionResult,
     RetrievedChunk,
 )
-from rag_agent.config import EmbeddingFactory, Settings, get_settings
+from rag_agent.config import Settings, get_embedding_model, get_settings
 
 
 class VectorStoreManager:
@@ -52,7 +53,7 @@ class VectorStoreManager:
 
     def __init__(self, settings: Settings | None = None) -> None:
         self._settings = settings or get_settings()
-        self._embeddings = EmbeddingFactory(self._settings).create()
+        self._embeddings = get_embedding_model()
         self._client = None
         self._collection = None
         self._initialise()
@@ -420,3 +421,9 @@ class VectorStoreManager:
         self._collection.delete(where={"source": source})
         logger.info("Deleted {} chunks for source '{}'", count, source)
         return count
+
+
+@lru_cache(maxsize=1)
+def get_vector_store() -> VectorStoreManager:
+    """Singleton vector store shared by UI and agent nodes."""
+    return VectorStoreManager()
