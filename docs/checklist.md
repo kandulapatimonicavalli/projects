@@ -1,9 +1,17 @@
 # Build Checklist
 
+## Status (2026-06-01)
+
+**Done:** Core backend (`store.py`, `nodes.py`, `graph.py`), Streamlit three-panel UI, Groq + local embeddings, ANN/CNN/RNN markdown corpus, architecture doc filled in `docs/architecture.md`.
+
+**Remaining:** Landmark PDF ingestion, LSTM/Seq2Seq/Autoencoder corpus files, cloud deployment, wiring question/evaluation prompts in UI, recorded demo rehearsal.
+
+---
+
 ## What You Are Building
 
 A RAG-powered interview preparation agent that:
-- Ingests deep learning study material your team authors
+- Ingests deep learning study material you author
 - Stores and retrieves content from a ChromaDB vector store
 - Uses LangChain for retrieval and prompt orchestration
 - Uses LangGraph to manage agent state and multi-turn conversation
@@ -30,33 +38,33 @@ Your output is the foundation. Without quality content, the
 retrieval pipeline has nothing to return.
 
 **Before writing anything:**
-- [ ] Agree metadata schema with Pipeline Engineer
+- [x] Agree metadata schema with Pipeline Engineer
       *(topic, difficulty, type, source, related_topics, is_bonus)*
-- [ ] Confirm file naming convention with the team
+- [x] Confirm file naming convention and document it in `docs/architecture.md`
       *(recommended: `ann_intermediate.md`, `lstm_advanced.md`)*
-- [ ] Place all files in `data/corpus/`
+- [x] Place all files in `data/corpus/`
 
 **Content drafting:**
-- [ ] Draft topic 1 — ANN
+- [x] Draft topic 1 — ANN
       *Hint: cover forward propagation, backprop, activation functions,
       loss functions, and vanishing gradients as separate chunks*
-- [ ] Draft topic 2 — CNN
+- [x] Draft topic 2 — CNN
       *Hint: cover convolution operation, pooling, feature maps,
       and the LeNet/AlexNet architectures as separate chunks*
-- [ ] Draft topic 3 — RNN
+- [x] Draft topic 3 — RNN
       *Hint: cover hidden state, sequence processing, BPTT,
       and why vanishing gradients are worse here than in ANNs*
 - [ ] Locate at least one landmark paper PDF per topic drafted
       *(see landmark papers table in README)*
 
-**Chunk quality — check every chunk before standup:**
-- [ ] One atomic idea per chunk — if it could answer five questions, split it
-- [ ] Between 100 and 300 words per chunk
-- [ ] Remove the topic name — can you still identify the topic from the content?
+**Chunk quality — check every chunk before your Phase 1 checkpoint:**
+- [x] One atomic idea per chunk — if it could answer five questions, split it
+- [x] Between 100 and 300 words per chunk
+- [x] Remove the topic name — can you still identify the topic from the content?
       If no, the chunk is too generic
-- [ ] Metadata complete and accurate on every chunk
-- [ ] No topic bleeding — LSTM content does not appear in an RNN chunk
-- [ ] Bonus topics flagged with `"is_bonus": true`
+- [x] Metadata complete and accurate on every chunk
+- [x] No topic bleeding — LSTM content does not appear in an RNN chunk
+- [x] Bonus topics flagged with `"is_bonus": true` *(N/A until bonus files added)*
 
 **Phase 1 milestone:** 3 topics drafted, minimum 3 chunks each,
 schema agreed, at least one landmark paper PDF located per topic.
@@ -69,36 +77,37 @@ You are building the backbone. Everything the UX Lead and Prompt
 Engineer produce must connect through your code.
 
 **Environment — verify before anything else:**
-- [ ] `uv sync` completes without errors
-- [ ] `.env` configured with working LLM provider
-- [ ] `uv run python -c "import chromadb; import langchain; import langgraph; print('OK')`
+- [x] `uv sync` completes without errors
+- [x] `.env` configured with working LLM provider
+- [x] `uv run python -c "import chromadb; import langchain; import langgraph; print('OK')`
       passes cleanly
-- [ ] `data/chroma_db/` directory exists
+- [x] `data/chroma_db/` directory exists *(created on first run)*
 
 **Implement in this order — do not skip ahead:**
-- [ ] `EmbeddingFactory._create_local()` in `config.py`
+- [x] `EmbeddingFactory._create_local()` in `config.py`
       *Hint: use `HuggingFaceEmbeddings(model_name=self._settings.embedding_model)`
       from `langchain_community.embeddings`*
-- [ ] `LLMFactory._create_groq()` / `_create_ollama()` / `_create_lmstudio()`
-      in `config.py` — implement whichever provider your team is using
+- [x] `LLMFactory._create_groq()` / `_create_ollama()` / `_create_lmstudio()`
+      in `config.py` — implement whichever provider you chose
       *Hint: `ChatGroq(api_key=..., model_name=...)` for Groq,
       `ChatOllama(base_url=..., model=...)` for Ollama*
-- [ ] `VectorStoreManager._initialise()` in `store.py`
+- [x] `VectorStoreManager._initialise()` in `store.py`
       *Hint: `chromadb.PersistentClient(path=...)` then
       `client.get_or_create_collection(name=..., metadata={"hnsw:space": "cosine"})`*
-- [ ] `VectorStoreManager.check_duplicate()` in `store.py`
+- [x] `VectorStoreManager.check_duplicate()` in `store.py`
       *Hint: `self._collection.get(ids=[chunk_id])` — returns a dict,
       check if `result["ids"]` is non-empty*
-- [ ] `VectorStoreManager.ingest()` in `store.py`
+- [x] `VectorStoreManager.ingest()` in `store.py`
       *Hint: loop chunks, call check_duplicate, embed with
       `self._embeddings.embed_documents([chunk.chunk_text])`,
       then `self._collection.upsert(ids, embeddings, documents, metadatas)`*
 
-**Hello world test — before standup:**
-- [ ] Write a scratch script (not production code) that ingests
+**Hello world test — before your Phase 1 checkpoint:**
+- [x] Write a scratch script (not production code) that ingests
       `examples/sample_chunk.json` and queries "what is a neural network"
-- [ ] Confirm a chunk is returned with a similarity score
-- [ ] Confirm running the script twice skips the chunk on the second run
+      *(covered by `tests/test_vectorstore.py`)*
+- [x] Confirm a chunk is returned with a similarity score
+- [x] Confirm running the script twice skips the chunk on the second run
 
 **Phase 1 milestone:** environment verified, embedding and LLM factories
 implemented, ChromaDB initialising, hello world retrieval returning results.
@@ -111,32 +120,32 @@ You own the interface and the demo narrative. A polished UI
 that crashes is worse than a plain UI that works.
 
 **Decide immediately — do not revisit:**
-- [ ] Framework chosen: Streamlit or Gradio
+- [x] Framework chosen: Streamlit or Gradio
       *(Streamlit → Streamlit Community Cloud,
       Gradio → HuggingFace Spaces)*
 - [ ] Deployment platform chosen and account created
 
 **Read before building:**
-- [ ] Open `src/rag_agent/agent/state.py` and read all data models
+- [x] Open `src/rag_agent/agent/state.py` and read all data models
       *These are what the backend returns — know them before you build*
-- [ ] Open `src/rag_agent/vectorstore/store.py` and read all method signatures
+- [x] Open `src/rag_agent/vectorstore/store.py` and read all method signatures
       *These are what you will call — note the return types*
-- [ ] Confirm with Pipeline Engineer that signatures have not changed
+- [x] Confirm with Pipeline Engineer that signatures have not changed
 
 **Build the static layout — no backend calls yet:**
-- [ ] Panel 1 — Ingestion
+- [x] Panel 1 — Ingestion
       *Multi-file uploader (.pdf and .md), upload button,
       status display area, ingested documents list*
-- [ ] Panel 2 — Document viewer
+- [x] Panel 2 — Document viewer
       *Document selector dropdown, content display area,
       chunk count and metadata display*
-- [ ] Panel 3 — Chat
+- [x] Panel 3 — Chat
       *Scrollable chat history, query input, submit button,
       source citation display area, no-context indicator*
-- [ ] All `st.session_state` keys initialised in `initialise_session_state()`
+- [x] All `st.session_state` keys initialised in `initialise_session_state()`
       *Hint: chat_history, ingested_documents, selected_document,
       thread_id, topic_filter, difficulty_filter*
-- [ ] App runs locally without errors:
+- [x] App runs locally without errors:
       `uv run streamlit run src/rag_agent/ui/app.py`
 
 **Phase 1 milestone:** framework chosen, static three-panel layout
@@ -176,10 +185,10 @@ Use `examples/sample_chunk.json` as your test context.
       Expected output: "LSTM long-term memory cell state forget gate mechanism"*
 
 **Document failure modes — one per prompt minimum:**
-- [ ] System prompt: *(e.g. model draws on general knowledge — tighten constraints)*
-- [ ] Question generation: *(e.g. produces yes/no questions — add open-ended instruction)*
-- [ ] Answer evaluation: *(e.g. score too generous — adjust scoring rubric)*
-- [ ] Query rewrite: *(e.g. over-abbreviates — test with longer queries)*
+- [x] System prompt: model draws on general knowledge — mitigated by strict rules + context-only system message in `generation_node`
+- [x] Question generation: yes/no or malformed JSON — open-ended + JSON-only suffix in `QUESTION_GENERATION_PROMPT`
+- [x] Answer evaluation: score too generous — explicit 0–10 rubric in `ANSWER_EVALUATION_PROMPT`
+- [x] Query rewrite: off-topic false positives — original-query validation in `retrieval_node` (see `docs/architecture.md`)
 
 **Phase 1 milestone:** all four prompts manually tested and validated,
 failure modes documented, JSON reliability confirmed.
@@ -188,60 +197,59 @@ failure modes documented, JSON reliability confirmed.
 
 ### QA Lead
 
-Your job is to find failure cases before the judges do in Hour 3.
+Your job is to find failure cases before you demo in Part 3.
 Start preparing now so Phase 2 testing is not rushed.
 
 **Write your integration test plan:**
-- [ ] Test 1 — Normal query
+- [x] Test 1 — Normal query
       *Input: "Explain the vanishing gradient problem"
       Expected: relevant chunks retrieved, accurate answer, source cited*
-- [ ] Test 2 — Off-topic query
+- [x] Test 2 — Off-topic query
       *Input: "What is the capital of France"
       Expected: hallucination guard fires, clear no-context message,
       no fabricated deep learning answer*
-- [ ] Test 3 — Duplicate ingestion
+- [x] Test 3 — Duplicate ingestion
       *Input: upload the same file twice
       Expected: second upload detected and skipped,
       IngestionResult.skipped equals chunk count of the file*
-- [ ] Test 4 — Empty query
+- [x] Test 4 — Empty query
       *Input: submit blank input
       Expected: graceful error message, application does not crash*
-- [ ] Test 5 — Cross-topic query
+- [x] Test 5 — Cross-topic query
       *Input: "How do LSTMs improve on RNNs for Seq2Seq tasks"
       Expected: chunks from at least two topics retrieved and synthesised*
+      *(partial until LSTM/Seq2Seq corpus added — see architecture QA table)*
 
-**Prepare Hour 3 interview questions — 3 required:**
-- [ ] Question 1: single topic, intermediate difficulty
-      *(e.g. "Walk me through the three gates in an LSTM and what each controls")*
-- [ ] Question 2: connects two topics
-      *(e.g. "How does the encoder in a Seq2Seq model relate to an autoencoder?")*
-- [ ] Question 3: system design or tradeoff
-      *(e.g. "Why did your team choose your chunk size and what would break
-      if you doubled it?")*
-- [ ] Model answer written for each question
+**Prepare Part 3 interview questions — 3 required:**
+- [x] Question 1: single topic, intermediate difficulty
+      *(documented in `docs/architecture.md` — backprop / vanishing gradients)*
+- [x] Question 2: connects two topics
+      *(RNN vs LSTM vanishing gradients — in architecture doc)*
+- [x] Question 3: system design or tradeoff
+      *(similarity threshold — in architecture doc)*
+- [x] Model answer written for each question
 
-**Risk assessment — review rubric before standup:**
-- [ ] Identify your team's top two risk categories from `docs/rubric.md`
-- [ ] Write one action per risk to reduce it before Hour 3
-- [ ] Share risk assessment with the team at standup
+**Risk assessment — review before your Phase 1 checkpoint:**
+- [x] Identify your top two risk categories from `docs/rubric.md`
+      *(rubric file not in repo — risks recorded in `docs/architecture.md`)*
+- [x] Write one action per risk to reduce it before Part 3
+- [x] Record risk assessment in `docs/architecture.md`
 
 **Phase 1 milestone:** five test cases written with expected behaviours,
-three Hour 3 questions drafted with model answers, risk assessment complete.
+three Part 3 questions drafted with model answers, risk assessment complete.
 
 ---
 
 ## Sanity Check 
 
-**Online Class:** Find an agreed time for Phase 1 to end and meet to check your work.
-
-**Hard stop. Every member checks in.**
+**Checkpoint:** Set a hard stop for Phase 1 and review your work.
 
 Three questions only — keep it tight:
 1. What do I have right now?
-2. What do I need from someone else?
+2. What do I still need to build or integrate?
 3. What is blocking me?
 
-Post standup notes in your team channel immediately after.
+Write brief notes in `docs/architecture.md` or your own log immediately after.
 
 **Common blockers and resolutions:**
 
@@ -257,53 +265,53 @@ Post standup notes in your team channel immediately after.
 
 ## Phase 2 Checklist — Integration and Hardening 
 
-Roles converge in this order. Do not jump to your Phase 2 tasks
-until the dependency above you is unblocked.
+Work areas converge in this order. Do not jump to later Phase 2 tasks
+until the dependency above is unblocked.
 
 ---
 
 ### Integration Order — Follow This Sequence
 
 **Step 1 — Pipeline Engineer + Corpus Architect**
-- [ ] Run first real ingestion with Phase 1 corpus content
-- [ ] Verify chunks stored with correct metadata in ChromaDB
-- [ ] Verify duplicate detection fires on a second ingest run
-- [ ] Verify query returns ranked results with scores above threshold
+- [x] Run first real ingestion with Phase 1 corpus content
+- [x] Verify chunks stored with correct metadata in ChromaDB
+- [x] Verify duplicate detection fires on a second ingest run
+- [x] Verify query returns ranked results with scores above threshold
 
 **Step 2 — Pipeline Engineer + Prompt Engineer**
-- [ ] Implement `query_rewrite_node` in `nodes.py`
+- [x] Implement `query_rewrite_node` in `nodes.py`
       *Hint: extract latest `HumanMessage` from state, call LLM with
       `QUERY_REWRITE_PROMPT`, return `{"rewritten_query": result}`*
-- [ ] Implement `retrieval_node` in `nodes.py`
+- [x] Implement `retrieval_node` in `nodes.py`
       *Hint: call `VectorStoreManager.query(state.rewritten_query)`,
       if empty set `{"no_context_found": True, "retrieved_chunks": []}`*
-- [ ] Implement `generation_node` in `nodes.py`
+- [x] Implement `generation_node` in `nodes.py`
       *Hint: check `state.no_context_found` first — if True return
       `NO_CONTEXT_RESPONSE` immediately. Otherwise build context string
       from retrieved chunks with citations, call LLM, return response*
-- [ ] Assemble graph in `graph.py`
+- [x] Assemble graph in `graph.py`
       *Hint: `StateGraph(AgentState)` → add nodes → add edges →
       add conditional edge from retrieval using `should_retry_retrieval` →
       `graph.compile(checkpointer=MemorySaver())`*
 
 **Step 3 — Pipeline Engineer + UX Lead**
-- [ ] Wire ingestion panel to `VectorStoreManager.ingest()`
-- [ ] Wire document viewer to `VectorStoreManager.list_documents()`
+- [x] Wire ingestion panel to `VectorStoreManager.ingest()`
+- [x] Wire document viewer to `VectorStoreManager.list_documents()`
       and `get_document_chunks()`
-- [ ] Wire chat to compiled LangGraph graph
+- [x] Wire chat to compiled LangGraph graph
       *Hint: `graph.invoke({"messages": [HumanMessage(content=query)]},
       config={"configurable": {"thread_id": st.session_state.thread_id}})`*
-- [ ] Verify source citations appear in every chat response
-- [ ] Verify no-context indicator appears when hallucination guard fires
+- [x] Verify source citations appear in every chat response
+- [x] Verify no-context indicator appears when hallucination guard fires
 
 **Step 4 — QA Lead**
-- [ ] Run all five test cases from Phase 1 test plan
-- [ ] Record pass/fail and actual behaviour for each
-- [ ] Flag critical failures immediately to the relevant role owner
+- [x] Run all five test cases from Phase 1 test plan
+- [x] Record pass/fail and actual behaviour for each *(see `docs/architecture.md` QA table)*
+- [x] Flag critical failures immediately to the relevant role owner
 
 ---
 
-### Phase 2 Per-Role Checklist
+### Phase 2 Per-Area Checklist
 
 #### Corpus Architect
 - [ ] Complete remaining core topics: LSTM, Seq2Seq, Autoencoder
@@ -315,46 +323,47 @@ until the dependency above you is unblocked.
 - [ ] Add bonus topics if core topics complete: SOM, Boltzmann, GAN
 
 #### Pipeline Engineer
-- [ ] Implement `VectorStoreManager.query()` in `store.py`
+- [x] Implement `VectorStoreManager.query()` in `store.py`
       *Hint: embed query with `self._embeddings.embed_query(query_text)`,
       call `self._collection.query(query_embeddings, n_results=k,
       include=["documents", "metadatas", "distances"])`,
       convert distances to scores: `score = 1 - distance` for cosine,
       filter below `self._settings.similarity_threshold`*
-- [ ] Implement `VectorStoreManager.list_documents()` and
+- [x] Implement `VectorStoreManager.list_documents()` and
       `get_document_chunks()` for the document viewer
-- [ ] Implement conversation memory trimming in `generation_node`
+- [x] Implement conversation memory trimming in `generation_node`
       *Hint: use `trim_messages(messages, max_tokens=settings.max_context_tokens,
       strategy="last")` from `langchain_core.messages`*
-- [ ] Confirm graph advances through all three nodes end to end
+- [x] Confirm graph advances through all three nodes end to end
 
 #### UX Lead
-- [ ] Progress indicator during ingestion
+- [x] Progress indicator during ingestion
       *(Streamlit: `st.spinner()` or `st.progress()`)*
-- [ ] Ingestion result display: chunks added, duplicates skipped, errors
-- [ ] Source citations visible in every chat response
-- [ ] Clear no-context indicator when hallucination guard fires
+- [x] Ingestion result display: chunks added, duplicates skipped, errors
+- [x] Source citations visible in every chat response
+- [x] Clear no-context indicator when hallucination guard fires
 - [ ] Stretch goal: streaming responses
       *(Hint: replace `graph.invoke` with `graph.stream` and
       use `st.write_stream()` to display tokens as they arrive)*
 
 #### Prompt Engineer
-- [ ] Integrate all prompts into the live system via Pipeline Engineer
+- [x] Integrate all prompts into the live system via Pipeline Engineer
+      *(`SYSTEM_PROMPT`, `QUERY_REWRITE_PROMPT` in graph; Q&A prompts defined, not in UI)*
 - [ ] Run 10 manual test queries through the integrated system
-- [ ] Verify question difficulty levels are being applied correctly
-- [ ] Verify JSON parsing is reliable — no malformed responses in 10 tests
+- [x] Verify question difficulty levels are being applied correctly *(metadata filters in UI)*
+- [ ] Verify JSON parsing is reliable — no malformed responses in 10 tests *(when Q&A UI added)*
 - [ ] Document final prompt versions in `prompts.py` docstrings
 
 #### QA Lead
-- [ ] Run all five integration test cases — record results in `docs/architecture.md`
-- [ ] Confirm critical failures fixed: hallucination guard, duplicate
+- [x] Run all five integration test cases — record results in `docs/architecture.md`
+- [x] Confirm critical failures fixed: hallucination guard, duplicate
       detection, source citations, no crashes
-- [ ] Write 60-second demo script hitting these beats in order:
+- [x] Write 60-second demo script hitting these beats in order:
       1. Upload two documents
       2. Upload one again — show duplicate detection
       3. Submit a normal query — show source citation
       4. Submit an off-topic query — show hallucination guard
-      5. Generate an interview question with model answer
+      5. Generate an interview question with model answer *(step 5 pending Q&A UI)*
 - [ ] Practice demo script once before rehearsal
 
 ---
@@ -362,10 +371,10 @@ until the dependency above you is unblocked.
 ## Demo Rehearsal
 
 - [ ] One full end-to-end run-through with the actual demo script
-- [ ] Every team member watches and notes anything wrong or confusing
+- [ ] Note anything wrong or confusing and fix or document workarounds
 - [ ] Decide now: fix broken things or work around them gracefully
       *(a clean workaround explained openly scores better than a
-      hidden bug that surfaces in front of the judges)*
+      hidden bug that surfaces during a live demo)*
 - [ ] Record a short video walkthrough as a backup
       *(Loom, OBS, or your phone — insurance if something breaks live)*
 
@@ -373,9 +382,9 @@ until the dependency above you is unblocked.
 
 ## Presentations
 
-**F2F:** Class presentation
+**Live:** Walk through your working demo in person or on a call.
 
-**Online Class:** 5 minute video presentation of your working demo
+**Recorded:** 5-minute video presentation of your working demo.
 
 ---
 

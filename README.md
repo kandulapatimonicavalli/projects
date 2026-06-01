@@ -8,32 +8,32 @@ generate and answer technical interview questions.
 
 ## Overview
 
-You are on a team with distinct roles, each owning a critical piece
-of the system. The Corpus Architect is the foundation — without quality
-study material, the entire RAG pipeline has nothing to retrieve. The
-Pipeline Engineer is the backbone — they wire together ChromaDB,
-LangChain, and LangGraph into a working system. The UX Lead is the
-face — they own the interface and the demo narrative that the judges
-will see in Part 3. The Prompt Engineer is the voice — they control
-how the agent thinks, asks questions, and evaluates answers. The QA
-Lead is the conscience — they stress test the system, find the failure
-cases, and performs quality assurance. No role works in isolation. 
-Every role depends on every other role
-delivering on time. This is not an individual assignment — it is a
-team system design interview. Here is the breakdown for tonight:
+You are building this system end to end as an individual project. The
+guide is organized into work areas — corpus, pipeline, UX, prompts,
+and QA — each owning a critical piece of the system. The Corpus
+Architect workstream is the foundation: without quality study material,
+the RAG pipeline has nothing to retrieve. The Pipeline Engineer
+workstream is the backbone: ChromaDB, LangChain, and LangGraph wired
+into a working system. The UX Lead workstream is the face: the
+interface and demo narrative you will present. The Prompt Engineer
+workstream is the voice: how the agent thinks, asks questions, and
+evaluates answers. The QA Lead workstream is the conscience: stress
+testing, failure cases, and quality assurance. No area stands alone —
+each depends on the others, and you carry all of them. Treat this as a
+solo system design interview and portfolio build. Here is the breakdown:
 
 ### Part 1 — Align and Launch 
 
-The goal of Part 1 is to make sure every team member understands the
-full system before anyone writes a line of code.
+The goal of Part 1 is to understand the full system before you write
+production code.
 
-**Role Lock**
-Roles are confirmed and posted. Every team member knows exactly what
-they own.
+**Scope the work**
+Decide the order you will tackle each work area and what “done” means
+for Part 1.
 
 **Sketch the System**
-Before anyone opens a laptop to build, get together as a team and complete `docs/architecture.md`. 
-Complete `docs/architecture.md` before Part 2 begins.
+Before heavy implementation, complete `docs/architecture.md`.
+Finish it before Part 2 begins.
 
 **Good Chunk vs Bad Chunk Demo**
 Understand what a well-formed chunk looks like versus
@@ -41,57 +41,52 @@ a poorly formed one. This directly determines retrieval quality. See
 `examples/sample_chunk.json` for the canonical reference.
 
 **Parallel Workstream Kickoff**
-Everyone starts their role simultaneously. The Corpus Architect begins
-drafting. The Pipeline Engineer begins setup with the rest of the team
-watching. No one is idle.
+Start the areas that can move in parallel. Begin drafting corpus content
+while you run environment setup and skim the UI and prompt stubs.
 
 ---
 
 ### Part 2 - The Build 
 
-The goal of Part 2 is to produce a working end-to-end system. This is
-the hackathon. Every role has a clear milestone and a clear definition
-of done.
+The goal of Part 2 is a working end-to-end system. Each work area has a
+clear milestone and definition of done.
 
-Part 2 is split into two phases with a mandatory team meet in the
+Part 2 is split into two phases with a mandatory checkpoint in the
 middle.
 
 **Phase 1 — Parallel Build**
-Each role works toward their Phase 1 milestone independently. The
-Corpus Architect drafts core topics. The Pipeline Engineer implements
-the backend stubs in order. The UX Lead builds the static three-panel
-layout. The Prompt Engineer manually tests all three prompts. The QA
-Lead writes the test plan and Part 3 questions.
+Work toward each Phase 1 milestone: draft core corpus topics,
+implement backend stubs in order, build the static three-panel layout,
+manually test all prompts, and write the test plan plus demo questions.
 
-**Team Standup**
-Every team member answers three questions: what do I have, what do I
-need, what is blocking me. This is the only moment where everyone
-stops building and syncs.
+**Progress Checkpoint**
+Pause and answer three questions: what do I have, what do I still need,
+what is blocking me.
 
 **Phase 2 — Integration and Hardening**
-Roles converge. The corpus gets ingested and tested. The UI wires to
-the backend. Prompts go live inside the LangGraph nodes. The QA Lead
-runs the full test plan against the integrated system.
+Integrate everything: ingest and test the corpus, wire the UI to the
+backend, connect prompts inside LangGraph nodes, and run the full test
+plan.
 
 **Demo Rehearsal**
 One full end-to-end run-through before Part 3. 
 
-See `docs/checklist.md` for the full per-role breakdown of both phases.
+See `docs/checklist.md` for the full per-area breakdown of both phases.
 
 ---
 
 ### Part 3 — Presentations
 
 The goal of Part 3 is to present what you built under interview
-conditions. Every team presents and every team judges.
+conditions — as if walking an interviewer through a technical screen.
 
-**Team Demos**
-Each team does a live demo structured exactly like a technical screen.
-No slides — the running application is your presentation. The demo
-must show ingestion, duplicate detection, a successful query with
-source citation, and the hallucination guard firing on an off-topic
-question. Each member must present. F2F presents in class. Online teams will
-create a 5 minute video.
+**Demo**
+Use a live demo structured like a technical interview. No slides — the
+running application is your presentation. Show ingestion, duplicate
+detection, a successful query with source citation, and the
+hallucination guard firing on an off-topic question. For async or
+recorded submissions, a 5-minute video walkthrough of the same flow is
+fine.
 
 ---
 
@@ -99,15 +94,14 @@ create a 5 minute video.
 
 Every decision you make in Part 1 affects what you can build in Part 2.
 Every decision you make in Part 2 affects what you can defend in Part 3.
-The goal is to explain every thing your team has done
-and why.
+The goal is to explain everything you built and why.
 
 ---
 
-## 👋 Find Your Role
+## 👋 Navigate the Guide
 
-Before doing anything else, confirm your role with your team.
-Then jump directly to your role's section below.
+Use the table below to jump to the work area you are focusing on.
+You will touch every section over the course of the project.
 
 | Role | You Own | Go To |
 |---|---|---|
@@ -121,8 +115,8 @@ Then jump directly to your role's section below.
 
 ## Corpus Architect
 
-You start immediately — independently, right now, while the Pipeline
-Engineer sets up the environment with the rest of the team.
+You can start immediately — in parallel with environment setup — while
+the pipeline workstream gets the repo and dependencies ready.
 
 ### Your First Task — Draft 3 Topics
 
@@ -215,15 +209,14 @@ Place downloaded PDFs in `data/corpus/`.
 
 ## Pipeline Engineer
 
-You are responsible for environment setup. The UX Lead, Prompt Engineer,
-and QA Lead will set up alongside you — walk them through each step
-and talk through decisions out loud. This is your first system design
-conversation as a team.
+You own environment setup and the core backend. Document decisions as
+you go — chunking, embeddings, retrieval, and graph flow are core
+system design talking points.
 
-### Step 1 — Clone the Repo (everyone does this)
+### Step 1 — Clone the Repo
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/kandulapatimonicavalli/deep-learning-rag-agent.git
 cd deep-learning-rag-agent
 ```
 
@@ -280,9 +273,10 @@ If this passes, environment setup is complete.
 uv run streamlit run src/rag_agent/ui/app.py
 ```
 
-You will see a `NotImplementedError`. This is expected — the stubs
-are in place and waiting for your implementation. Your job is now
-to work through the stack trace and implement each stub in order.
+If you see a `NotImplementedError`, a stub is still unimplemented —
+follow the stack trace and implement the referenced method. The core
+pipeline (`store.py`, `nodes.py`, `graph.py`, `app.py`) is already
+implemented in this repository.
 
 **Implementation order:**
 1. `EmbeddingFactory._create_local()` in `config.py`
@@ -294,7 +288,7 @@ to work through the stack trace and implement each stub in order.
 7. Graph assembly in `graph.py`
 
 **Your Phase 1 milestone:**
-- [ ] `uv sync` completes without errors for all team members
+- [ ] `uv sync` completes without errors
 - [ ] `.env` configured with working LLM provider
 - [ ] `EmbeddingFactory._create_local()` implemented
 - [ ] `VectorStoreManager._initialise()` implemented
@@ -305,9 +299,9 @@ to work through the stack trace and implement each stub in order.
 
 ## UX Lead
 
-While the Pipeline Engineer runs setup, sit with the team and
-follow along. You do not need to understand every line of the
-backend code — but you need to understand what it returns.
+While environment setup runs, read the backend contracts. You do not
+need to understand every line of backend code — but you need to
+understand what it returns.
 
 ### While Watching Setup — Think About These
 
@@ -349,7 +343,7 @@ line by line — the `initialise_session_state()` function is your
 starting point.
 
 **Your Phase 1 milestone:**
-- [ ] Framework chosen and confirmed with team
+- [ ] Framework chosen and recorded in `docs/architecture.md`
 - [ ] Data models in `state.py` read and understood
 - [ ] Static three-panel layout running locally with placeholder content
 - [ ] `st.session_state` keys initialised correctly
@@ -358,9 +352,8 @@ starting point.
 
 ## Prompt Engineer
 
-While the Pipeline Engineer runs setup, sit with the team and
-follow along. Your job during setup is to understand the data
-flow so you can write prompts that work with real retrieved chunks.
+While environment setup runs, study the data flow so you can write
+prompts that work with real retrieved chunks.
 
 ### While Watching Setup — Think About These
 
@@ -507,9 +500,8 @@ or a default? Decide this with the UX Lead during setup.
 
 ## QA Lead
 
-While the Pipeline Engineer runs setup, sit with the team and
-follow along. Your job during setup is to understand the system
-well enough to break it later.
+While environment setup runs, learn the system well enough to break it
+in Phase 2.
 
 ### While Watching Setup — Think About These
 
@@ -529,14 +521,14 @@ Start writing those test cases during setup:
 
 **On Part 3 questions:**
 You are responsible for drafting three technical interview questions
-your team will ask opponents in Part 3. Rules:
+you can use in a demo or portfolio review. Rules:
 - Must be answerable from a well-built corpus
 - At least one must connect two topics
 - Prepare a model answer for each
 
 **Your Phase 1 milestone:**
 - [ ] Five integration test cases written
-- [ ] Team risk assessment completed against rubric
+- [ ] Risk assessment completed against rubric
 - [ ] Three Part 3 interview questions drafted with model answers
 - [ ] Demo script outline started (ingestion → duplicate → query → guard → question)
 
@@ -615,7 +607,7 @@ any tooling written for OpenAI works without code changes, just a
 
 ## Deployment
 
-### Streamlit Community Cloud (Streamlit UI teams)
+### Streamlit Community Cloud (if you chose Streamlit)
 
 1. Push code to a public GitHub repository
 2. Go to [share.streamlit.io](https://share.streamlit.io)
@@ -623,7 +615,7 @@ any tooling written for OpenAI works without code changes, just a
 4. Under **Advanced Settings → Secrets**, add your `.env` variables
 5. Click **Deploy**
 
-### HuggingFace Spaces (Gradio UI teams, or Streamlit teams)
+### HuggingFace Spaces (if you chose Gradio, or Streamlit on Spaces)
 
 1. Create a free account at [huggingface.co](https://huggingface.co)
 2. Go to **Spaces → Create New Space**
@@ -642,7 +634,7 @@ for memory-intensive embedding operations than Streamlit Community Cloud.
 deep-learning-rag-agent/
 ├── docs/
 │   ├── checklist.md            ← Part 2 guide
-│   ├── architecture.md         ← your team fills this in
+│   ├── architecture.md         ← system design doc (filled)
 ├── data/
 │   └── corpus/                 ← Corpus Architect: add .md and .pdf files here
 ├── examples/
@@ -680,8 +672,8 @@ uv run pytest tests/ -v
 
 ## Submitting Your Work
 
-At least one team member must publish the finished project
-to their personal GitHub account before the session ends.
+Publish the finished project to your personal GitHub account when you
+are ready to share it.
 
 To publish from VSCode:
 1. Open Source Control in the sidebar
@@ -689,17 +681,17 @@ To publish from VSCode:
 3. Choose **Public**
 4. Name it something memorable — this goes on your portfolio
 
-All other team members should should do the same so every
-team member has a personal copy under their own GitHub profile.
-A working RAG agent is a strong portfolio piece — own it.
+A working RAG agent is a strong portfolio piece — document your design
+decisions in `docs/architecture.md` so you can discuss them in
+interviews.
 
 ---
 
 ## Presentations
 
-**F2F:** Class presentation
+**Live:** Walk through your working demo in person or on a call.
 
-**Online Class:** 5 minute video presentation of your working demo
+**Recorded:** 5-minute video presentation of your working demo.
 
 ---
 

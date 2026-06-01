@@ -14,10 +14,51 @@ PEP 8 | OOP
 
 from __future__ import annotations
 
+import uuid
+
 import pytest
 
 from rag_agent.agent.state import ChunkMetadata, DocumentChunk
+from rag_agent.config import Settings
 from rag_agent.vectorstore.store import VectorStoreManager
+
+
+# ---------------------------------------------------------------------------
+# Helpers — isolated ChromaDB per test (does not touch ./data/chroma_db)
+# ---------------------------------------------------------------------------
+
+
+def _make_test_store(tmp_path, monkeypatch) -> VectorStoreManager:
+    """Vector store backed by a temporary directory and unique collection name."""
+    monkeypatch.setenv("CHROMA_DB_PATH", str(tmp_path / "chroma_db"))
+    monkeypatch.setenv("CHROMA_COLLECTION_NAME", f"pytest_{uuid.uuid4().hex[:8]}")
+    return VectorStoreManager(settings=Settings())
+
+
+def _make_chunk(
+    *,
+    source: str,
+    topic: str,
+    chunk_text: str,
+    difficulty: str = "intermediate",
+    chunk_type: str = "concept_explanation",
+    related_topics: list[str] | None = None,
+    is_bonus: bool = False,
+) -> DocumentChunk:
+    """Build a DocumentChunk with a consistent content-derived ID."""
+    metadata = ChunkMetadata(
+        topic=topic,
+        difficulty=difficulty,
+        type=chunk_type,
+        source=source,
+        related_topics=related_topics or [],
+        is_bonus=is_bonus,
+    )
+    return DocumentChunk(
+        chunk_id=VectorStoreManager.generate_chunk_id(source, chunk_text),
+        chunk_text=chunk_text,
+        metadata=metadata,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -28,45 +69,36 @@ from rag_agent.vectorstore.store import VectorStoreManager
 @pytest.fixture
 def sample_chunk() -> DocumentChunk:
     """A single valid DocumentChunk for use across tests."""
-    metadata = ChunkMetadata(
-        topic="LSTM",
-        difficulty="intermediate",
-        type="concept_explanation",
-        source="test_lstm.md",
-        related_topics=["RNN", "vanishing_gradient"],
-        is_bonus=False,
+    text = (
+        "Long Short-Term Memory networks solve the vanishing gradient problem "
+        "through gated mechanisms: the forget gate, input gate, and output gate. "
+        "These gates control information flow through the cell state, allowing "
+        "the network to maintain relevant information across long sequences."
     )
-    return DocumentChunk(
-        chunk_id=VectorStoreManager.generate_chunk_id("test_lstm.md", "test content"),
-        chunk_text=(
-            "Long Short-Term Memory networks solve the vanishing gradient problem "
-            "through gated mechanisms: the forget gate, input gate, and output gate. "
-            "These gates control information flow through the cell state, allowing "
-            "the network to maintain relevant information across long sequences."
-        ),
-        metadata=metadata,
+    return _make_chunk(
+        source="test_lstm.md",
+        topic="LSTM",
+        chunk_text=text,
+        related_topics=["RNN", "vanishing_gradient"],
     )
 
 
 @pytest.fixture
 def bonus_chunk() -> DocumentChunk:
-    """A bonus topic chunk (GAN) for testing is_bonus filtering."""
-    metadata = ChunkMetadata(
-        topic="GAN",
-        difficulty="advanced",
-        type="architecture",
+    """A bonus topic chunk (GAN) for testing topic filtering."""
+    text = (
+        "Generative Adversarial Networks consist of two competing neural networks: "
+        "a generator that produces synthetic data and a discriminator that "
+        "distinguishes real from generated samples. Training is a minimax game."
+    )
+    return _make_chunk(
         source="test_gan.md",
+        topic="GAN",
+        chunk_text=text,
+        difficulty="advanced",
+        chunk_type="architecture",
         related_topics=["autoencoder", "generative_models"],
         is_bonus=True,
-    )
-    return DocumentChunk(
-        chunk_id=VectorStoreManager.generate_chunk_id("test_gan.md", "gan content"),
-        chunk_text=(
-            "Generative Adversarial Networks consist of two competing neural networks: "
-            "a generator that produces synthetic data and a discriminator that "
-            "distinguishes real from generated samples. Training is a minimax game."
-        ),
-        metadata=metadata,
     )
 
 
@@ -118,27 +150,33 @@ class TestDuplicateDetection:
     """
 
     def test_new_chunk_is_not_duplicate(
-        self, tmp_path, sample_chunk: DocumentChunk
+        self, tmp_path, monkeypatch, sample_chunk: DocumentChunk
     ) -> None:
         """A chunk that has never been ingested must not be flagged as duplicate."""
-        # TODO: implement using a test ChromaDB path in tmp_path
-        # store = VectorStoreManager(settings=test_settings(chroma_db_path=tmp_path))
-        # assert store.check_duplicate(sample_chunk.chunk_id) is False
-        pytest.skip("Implement after VectorStoreManager is complete")
+        store = _make_test_store(tmp_path, monkeypatch)
+        assert store.check_duplicate(sample_chunk.chunk_id) is False
 
     def test_ingested_chunk_is_duplicate(
-        self, tmp_path, sample_chunk: DocumentChunk
+        self, tmp_path, monkeypatch, sample_chunk: DocumentChunk
     ) -> None:
         """A chunk that has been ingested must be flagged as duplicate on re-check."""
-        # TODO: ingest chunk, then check_duplicate → True
-        pytest.skip("Implement after VectorStoreManager is complete")
+        store = _make_test_store(tmp_path, monkeypatch)
+        result = store.ingest([sample_chunk])
+        assert result.ingested == 1
+        assert store.check_duplicate(sample_chunk.chunk_id) is True
 
     def test_ingestion_skips_duplicate(
-        self, tmp_path, sample_chunk: DocumentChunk
+        self, tmp_path, monkeypatch, sample_chunk: DocumentChunk
     ) -> None:
         """Ingesting the same chunk twice must result in skipped=1 on second call."""
-        # TODO: ingest once, ingest again, check IngestionResult.skipped == 1
-        pytest.skip("Implement after VectorStoreManager is complete")
+        store = _make_test_store(tmp_path, monkeypatch)
+        first = store.ingest([sample_chunk])
+        assert first.ingested == 1
+        assert first.skipped == 0
+
+        second = store.ingest([sample_chunk])
+        assert second.ingested == 0
+        assert second.skipped == 1
 
 
 # ---------------------------------------------------------------------------
@@ -155,37 +193,72 @@ class TestRetrieval:
     """
 
     def test_relevant_query_returns_results(
-        self, tmp_path, sample_chunk: DocumentChunk
+        self, tmp_path, monkeypatch, sample_chunk: DocumentChunk
     ) -> None:
         """A query semantically similar to an ingested chunk must return results."""
-        # TODO: ingest sample_chunk, query "LSTM gate mechanism", assert len > 0
-        pytest.skip("Implement after VectorStoreManager is complete")
+        store = _make_test_store(tmp_path, monkeypatch)
+        store.ingest([sample_chunk])
 
-    def test_irrelevant_query_returns_empty(self, tmp_path) -> None:
+        results = store.query("LSTM forget gate input output mechanism")
+        assert len(results) > 0
+        returned_ids = {chunk.chunk_id for chunk in results}
+        assert sample_chunk.chunk_id in returned_ids
+        assert all(
+            chunk.score >= store._settings.similarity_threshold for chunk in results
+        )
+
+    def test_irrelevant_query_returns_empty(
+        self, tmp_path, monkeypatch, sample_chunk: DocumentChunk
+    ) -> None:
         """
         A query with no semantic similarity to the corpus must return empty list.
 
         This tests the hallucination guard threshold. The system must return
         an empty list — not low-quality chunks — when nothing matches.
         """
-        # TODO: ingest sample_chunk, query "history of the roman empire"
-        # assert result == []
-        pytest.skip("Implement after VectorStoreManager is complete")
+        store = _make_test_store(tmp_path, monkeypatch)
+        store.ingest([sample_chunk])
+
+        results = store.query("history of the roman empire ancient politics")
+        assert results == []
 
     def test_topic_filter_restricts_results(
         self,
         tmp_path,
+        monkeypatch,
         sample_chunk: DocumentChunk,
         bonus_chunk: DocumentChunk,
     ) -> None:
         """Results with topic_filter='LSTM' must not include GAN chunks."""
-        # TODO: ingest both chunks, query with topic_filter="LSTM"
-        # assert all(c.metadata.topic == "LSTM" for c in results)
-        pytest.skip("Implement after VectorStoreManager is complete")
+        store = _make_test_store(tmp_path, monkeypatch)
+        store.ingest([sample_chunk, bonus_chunk])
+
+        results = store.query(
+            "neural network architecture training",
+            topic_filter="LSTM",
+        )
+        assert len(results) > 0
+        assert all(chunk.metadata.topic == "LSTM" for chunk in results)
 
     def test_results_sorted_by_score_descending(
-        self, tmp_path, sample_chunk: DocumentChunk
+        self, tmp_path, monkeypatch, sample_chunk: DocumentChunk
     ) -> None:
         """Retrieved chunks must be sorted with highest similarity first."""
-        # TODO: ingest multiple chunks, verify scores are non-increasing
-        pytest.skip("Implement after VectorStoreManager is complete")
+        second_lstm = _make_chunk(
+            source="test_lstm_extra.md",
+            topic="LSTM",
+            chunk_text=(
+                "The forget gate in an LSTM decides what information to remove "
+                "from the cell state. The input gate controls new information "
+                "written into the cell state. The output gate selects what the "
+                "hidden state exposes at each time step."
+            ),
+            related_topics=["RNN", "gates"],
+        )
+        store = _make_test_store(tmp_path, monkeypatch)
+        store.ingest([sample_chunk, second_lstm])
+
+        results = store.query("LSTM forget gate input output cell state", k=4)
+        assert len(results) >= 2
+        scores = [chunk.score for chunk in results]
+        assert scores == sorted(scores, reverse=True)
