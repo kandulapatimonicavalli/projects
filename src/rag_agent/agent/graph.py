@@ -17,11 +17,15 @@ from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
 
 from rag_agent.agent.nodes import (
+    answer_evaluation_node,
     generation_node,
     no_context_node,
+    prepare_retrieval_node,
+    question_generation_node,
     query_rewrite_node,
     retrieval_node,
-    should_retry_retrieval,
+    route_after_retrieval,
+    route_by_mode,
 )
 from rag_agent.agent.state import AgentState
 
@@ -30,46 +34,44 @@ class AgentGraphBuilder:
     """
     Constructs and compiles the LangGraph agent state graph.
 
-    The graph implements a three-node RAG pipeline:
+    The graph supports three modes via ``state.mode``:
 
         [START]
            │
            ▼
-    query_rewrite_node   ← rewrites query for better retrieval
+    route_by_mode
            │
-           ▼
-    retrieval_node       ← fetches relevant chunks from ChromaDB
-           │
-           ▼ (conditional edge via should_retry_retrieval)
-           │
-     ┌─────┴──────┐
-     │            │
-  "generate"    "end"
-     │            │
-     ▼            ▼
-generation_node  [END]   ← hallucination guard fires here
-     │
-     ▼
-   [END]
+     ┌─────┴──────────────────────────┐
+     │                                │
+  "rewrite"                      "prepare"
+     │                                │
+     ▼                                ▼
+query_rewrite_node          prepare_retrieval_node
+     │                                │
+     └────────────┬───────────────────┘
+                  ▼
+           retrieval_node
+                  │
+                  ▼ (route_after_retrieval)
+     ┌────────────┼────────────┬──────────────┐
+     │            │            │              │
+"generation" "question_gen" "answer_eval" "no_context"
+     │            │            │              │
+     ▼            ▼            ▼              ▼
+generation   question_gen  answer_eval   no_context
+     │            │            │              │
+     └────────────┴────────────┴──────────────┘
+                  │
+                  ▼
+                [END]
+
+    Chat mode uses query rewrite; question generation and answer evaluation
+    skip rewrite and build retrieval queries directly from filters or the
+    evaluation question text.
 
     The checkpointer (MemorySaver) enables multi-turn conversation:
     each thread_id maintains its own message history and state,
     persisted in memory for the lifetime of the application session.
-
-    Interview talking point: the graph structure makes the agent's
-    decision logic explicit and auditable. Compare this to a black-box
-    agent loop where control flow is implicit.
-
-    Example
-    -------
-    >>> builder = AgentGraphBuilder()
-    >>> graph = builder.build()
-    >>> config = {"configurable": {"thread_id": "user-session-001"}}
-    >>> result = graph.invoke(
-    ...     {"messages": [HumanMessage(content="Explain LSTMs")]},
-    ...     config=config
-    ... )
-    >>> print(result["final_response"].answer)
     """
 
     def __init__(self) -> None:
@@ -83,27 +85,37 @@ generation_node  [END]   ← hallucination guard fires here
         -------
         CompiledStateGraph
             A compiled LangGraph graph ready to invoke or stream.
-
-        Notes
-        -----
-        The compiled graph is thread-safe and can be shared across
-        multiple Streamlit sessions via st.cache_resource.
         """
         graph = StateGraph(AgentState)
 
         graph.add_node("query_rewrite", query_rewrite_node)
+        graph.add_node("prepare_retrieval", prepare_retrieval_node)
         graph.add_node("retrieval", retrieval_node)
         graph.add_node("generation", generation_node)
+        graph.add_node("question_generation", question_generation_node)
+        graph.add_node("answer_evaluation", answer_evaluation_node)
         graph.add_node("no_context", no_context_node)
 
-        graph.add_edge(START, "query_rewrite")
+        graph.add_conditional_edges(
+            START,
+            route_by_mode,
+            {"rewrite": "query_rewrite", "prepare": "prepare_retrieval"},
+        )
         graph.add_edge("query_rewrite", "retrieval")
+        graph.add_edge("prepare_retrieval", "retrieval")
         graph.add_conditional_edges(
             "retrieval",
-            should_retry_retrieval,
-            {"generate": "generation", "end": "no_context"},
+            route_after_retrieval,
+            {
+                "generation": "generation",
+                "question_generation": "question_generation",
+                "answer_evaluation": "answer_evaluation",
+                "no_context": "no_context",
+            },
         )
         graph.add_edge("generation", END)
+        graph.add_edge("question_generation", END)
+        graph.add_edge("answer_evaluation", END)
         graph.add_edge("no_context", END)
 
         return graph.compile(checkpointer=self._checkpointer)

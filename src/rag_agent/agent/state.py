@@ -12,7 +12,7 @@ PEP 8 | OOP | Single Responsibility
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Literal
 
 from langchain_core.messages import BaseMessage
 from langgraph.graph import MessagesState
@@ -216,6 +216,33 @@ class AgentResponse:
     rewritten_query: str = ""
 
 
+AgentMode = Literal["chat", "generate_question", "evaluate_answer"]
+
+
+@dataclass
+class QuestionGenerationResult:
+    """Structured output from question_generation_node."""
+
+    question: str
+    difficulty: str
+    topic: str
+    model_answer: str
+    follow_up: str
+    source_citations: list[str] = field(default_factory=list)
+
+
+@dataclass
+class AnswerEvaluationResult:
+    """Structured output from answer_evaluation_node."""
+
+    score: int
+    what_was_correct: str
+    what_was_missing: str
+    ideal_answer: str
+    interview_verdict: str
+    coaching_tip: str
+
+
 # ---------------------------------------------------------------------------
 # LangGraph State
 # ---------------------------------------------------------------------------
@@ -255,6 +282,16 @@ class AgentState(MessagesState):
         Optional topic to restrict retrieval scope (e.g. "LSTM").
     difficulty_filter : str | None
         Optional difficulty to restrict retrieval scope.
+    mode : AgentMode
+        Routes the graph: chat, generate_question, or evaluate_answer.
+    evaluation_question : str
+        Interview question text for answer evaluation mode.
+    candidate_answer : str
+        Student answer to grade in evaluate_answer mode.
+    question_result : QuestionGenerationResult | None
+        Populated by question_generation_node.
+    eval_result : AnswerEvaluationResult | None
+        Populated by answer_evaluation_node.
     """
 
     original_query: str = ""
@@ -264,3 +301,8 @@ class AgentState(MessagesState):
     final_response: AgentResponse | None = None
     topic_filter: str | None = None
     difficulty_filter: str | None = None
+    mode: AgentMode = "chat"
+    evaluation_question: str = ""
+    candidate_answer: str = ""
+    question_result: QuestionGenerationResult | None = None
+    eval_result: AnswerEvaluationResult | None = None
